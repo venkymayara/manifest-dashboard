@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MANIFEST ✦ Your Daily Abundance Tool</title>
+  <meta name="description" content="Your personal manifesting dashboard — goals, affirmations, gratitude & vision board." />
+
+  <!-- ═══════════════════════════════════════════════════════════
+       GOOGLE ANALYTICS — replace G-XXXXXXXXXX with your real ID
+       Get it free at: https://analytics.google.com
+  ════════════════════════════════════════════════════════════ -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+
+    // Custom event helpers (called throughout the app)
+    function gaEvent(name, params) {
+      if (typeof gtag === 'function') gtag('event', name, params || {});
+    }
+  </script>
+
+  <!-- React + Babel (CDN — no build step needed) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    html, body { margin: 0; padding: 0; background: #0a0a0f; }
+    #root { min-height: 100vh; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const ADMIN_PASSWORD = "MAYA2025";
+
+const AFFIRMATIONS = [
+  "I am a magnet for miracles and abundance.",
+  "Everything I desire is flowing to me now.",
+  "I am worthy of all the greatness life has to offer.",
+  "My dreams are valid and my goals are achievable.",
+  "I radiate confidence, power, and unstoppable energy.",
+  "The universe is always working in my favor.",
+  "I attract success, love, and prosperity effortlessly.",
+  "I am becoming the best version of myself every day.",
+  "My potential is limitless and my future is bright.",
+  "I deserve everything I have ever dreamed of.",
+];
+
+const QUOTES = [
+  { text: "What you think, you become. What you feel, you attract. What you imagine, you create.", author: "Buddha" },
+  { text: "You are a living magnet. What you attract into your life is in harmony with your dominant thoughts.", author: "Brian Tracy" },
+  { text: "The only limit to your impact is your imagination and commitment.", author: "Tony Robbins" },
+  { text: "Act as if what you do makes a difference. It does.", author: "William James" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+];
+
+const CATEGORIES = ["Career", "Health", "Wealth", "Love", "Growth", "Travel"];
+const CAT_META = {
+  Career: { color: "#c8a96e", light: "rgba(200,169,110,0.15)", icon: "💼", grad: "linear-gradient(135deg,#1a1408,#2a1f0a)" },
+  Health: { color: "#10b981", light: "rgba(16,185,129,0.15)",  icon: "🌿", grad: "linear-gradient(135deg,#071a12,#0a2b1c)" },
+  Wealth: { color: "#f59e0b", light: "rgba(245,158,11,0.15)",  icon: "💰", grad: "linear-gradient(135deg,#1a1408,#2b1f00)" },
+  Love:   { color: "#ec4899", light: "rgba(236,72,153,0.15)",  icon: "🌸", grad: "linear-gradient(135deg,#1a0812,#2b0a1a)" },
+  Growth: { color: "#a78b5e", light: "rgba(167,139,94,0.15)",  icon: "📈", grad: "linear-gradient(135deg,#14100a,#1e160a)" },
+  Travel: { color: "#14b8a6", light: "rgba(20,184,166,0.15)",  icon: "✈️", grad: "linear-gradient(135deg,#071a18,#0a2a26)" },
+};
+
+const DEFAULT_VISION = [
+  { id:"dv1", label:"Dream Career",      category:"Career", emoji:"💼", tagline:"Build the career you deserve",   icon:"🏆" },
+  { id:"dv2", label:"Vibrant Health",    category:"Health", emoji:"🌿", tagline:"Nourish your body & mind",       icon:"💪" },
+  { id:"dv3", label:"Financial Freedom", category:"Wealth", emoji:"💰", tagline:"Abundance flows freely to me",   icon:"✨" },
+  { id:"dv4", label:"Deep Connections",  category:"Love",   emoji:"🌸", tagline:"Love surrounds me always",       icon:"❤️" },
+  { id:"dv5", label:"Personal Growth",   category:"Growth", emoji:"📈", tagline:"Growing stronger every day",     icon:"🌱" },
+  { id:"dv6", label:"World Adventures",  category:"Travel", emoji:"✈️", tagline:"The world is my playground",    icon:"🌍" },
+];
+
+function useStorage(key, def) {
+  const [val, setVal] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : def; } catch { return def; }
+  });
+  const save = (v) => { setVal(v); try { localStorage.setItem(key, JSON.stringify(v)); } catch {} };
+  return [val, save];
+}
+
+const todayStr = () => new Date().toDateString();
+const nowISO = () => new Date().toISOString();
+
+// ── Analytics engine (localStorage — your own usage tracking) ──
+function recordVisit() {
+  try {
+    const key = "mf_analytics";
+    const raw = localStorage.getItem(key);
+    const d = raw ? JSON.parse(raw) : { totalVisits: 0, uniqueDays: [], sessions: [], tabClicks: {}, goalAdds: 0, affClicks: 0, gratSaves: 0, visionAdds: 0 };
+    d.totalVisits = (d.totalVisits || 0) + 1;
+    const today = todayStr();
+    if (!d.uniqueDays.includes(today)) d.uniqueDays.push(today);
+    d.sessions = d.sessions || [];
+    d.sessions.push({ time: nowISO(), date: today });
+    if (d.sessions.length > 200) d.sessions = d.sessions.slice(-200);
+    localStorage.setItem(key, JSON.stringify(d));
+  } catch {}
+  // Also fire to Google Analytics
+  gaEvent('page_view', { page_title: 'Manifest Dashboard' });
+}
+
+function recordEvent(type) {
+  try {
+    const key = "mf_analytics";
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (type === "goal")   { d.goalAdds   = (d.goalAdds   || 0) + 1; gaEvent('goal_added'); }
+    else if (type === "aff")  { d.affClicks  = (d.affClicks  || 0) + 1; gaEvent('affirmation_clicked'); }
+    else if (type === "grat") { d.gratSaves  = (d.gratSaves  || 0) + 1; gaEvent('gratitude_saved'); }
+    else if (type === "vision"){ d.visionAdds = (d.visionAdds|| 0) + 1; gaEvent('vision_item_added'); }
+    localStorage.setItem(key, JSON.stringify(d));
+  } catch {}
+}
+
+function recordTab(tabId) {
+  try {
+    const key = "mf_analytics";
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    d.tabClicks = d.tabClicks || {};
+    d.tabClicks[tabId] = (d.tabClicks[tabId] || 0) + 1;
+    localStorage.setItem(key, JSON.stringify(d));
+  } catch {}
+  gaEvent('tab_click', { tab_name: tabId });
+}
+
+function getAnalytics() {
+  try {
+    const raw = localStorage.getItem("mf_analytics");
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+// ── Admin Panel ──
+function AdminPanel({ onClose }) {
+  const [data, setData] = useState(null);
+  const [cleared, setCleared] = useState(false);
+
+  useEffect(() => { setData(getAnalytics()); }, []);
+
+  const clearData = () => {
+    localStorage.removeItem("mf_analytics");
+    setData(null);
+    setCleared(true);
+  };
+
+  const C = {
+    bg:"#0a0a0f", surface:"#111118", elevated:"#18181f",
+    border:"rgba(255,255,255,0.07)", borderHi:"rgba(255,255,255,0.13)",
+    accent:"#c8a96e", text:"#f0ede8", muted:"rgba(240,237,232,0.45)", faint:"rgba(240,237,232,0.18)",
+  };
+
+  const byDay = {};
+  (data?.sessions || []).forEach(s => { byDay[s.date] = (byDay[s.date] || 0) + 1; });
+  const dayEntries = Object.entries(byDay).sort((a, b) => new Date(b[0]) - new Date(a[0])).slice(0, 14);
+  const mostVisited = Object.entries(data?.tabClicks || {}).sort((a, b) => b[1] - a[1])[0];
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:300, overflowY:"auto", backdropFilter:"blur(6px)", padding:"20px 14px 40px" }}>
+      <div style={{ maxWidth:700, margin:"0 auto" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+          <div>
+            <div style={{ fontSize:11, letterSpacing:"0.12em", color:C.accent, fontWeight:700, marginBottom:4 }}>ADMIN PANEL</div>
+            <div style={{ fontSize:20, fontWeight:800, color:C.text }}>Maya's Analytics Dashboard</div>
+            <div style={{ color:C.muted, fontSize:12, marginTop:2 }}>mayaravenkym@gmail.com · localStorage data (this browser only)</div>
+            <div style={{ color:C.muted, fontSize:11, marginTop:4, background:"rgba(200,169,110,0.08)", border:"1px solid rgba(200,169,110,0.18)", borderRadius:8, padding:"6px 10px", display:"inline-block" }}>
+              ✦ Cross-device analytics now available via Google Analytics — see the GitHub Pages guide
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${C.borderHi}`, color:C.muted, borderRadius:10, padding:"8px 16px", fontSize:13, cursor:"pointer" }}>✕ Close</button>
+        </div>
+
+        {!data || cleared ? (
+          <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:40, textAlign:"center", color:C.muted }}>
+            {cleared ? "Analytics cleared." : "No analytics data yet. Visit the app first."}
+          </div>
+        ) : (
+          <>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:10, marginBottom:16 }}>
+              {[
+                { label:"Total Sessions",    val: data.totalVisits || 0,          sym:"◈", color:C.accent },
+                { label:"Unique Days",       val: (data.uniqueDays||[]).length,   sym:"◎", color:"#10b981" },
+                { label:"Goals Added",       val: data.goalAdds || 0,             sym:"🎯", color:"#c8a96e" },
+                { label:"Affirmations Used", val: data.affClicks || 0,            sym:"✦", color:"#a78b5e" },
+                { label:"Gratitude Saves",   val: data.gratSaves || 0,            sym:"❋", color:"#ec4899" },
+                { label:"Vision Adds",       val: data.visionAdds || 0,           sym:"⬡", color:"#14b8a6" },
+              ].map(({ label, val, sym, color }) => (
+                <div key={label} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 12px", textAlign:"center" }}>
+                  <div style={{ fontSize:18, marginBottom:6 }}>{sym}</div>
+                  <div style={{ fontSize:26, fontWeight:700, color, lineHeight:1 }}>{val}</div>
+                  <div style={{ color:C.faint, fontSize:11, marginTop:5, letterSpacing:"0.05em" }}>{label.toUpperCase()}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 18px", marginBottom:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div>
+                <div style={{ color:C.faint, fontSize:11, letterSpacing:"0.08em", marginBottom:4 }}>FIRST SESSION</div>
+                <div style={{ color:C.text, fontSize:13, fontWeight:600 }}>{data.sessions?.[0]?.date || "—"}</div>
+                <div style={{ color:C.muted, fontSize:11 }}>{data.sessions?.[0]?.time ? new Date(data.sessions[0].time).toLocaleTimeString() : ""}</div>
+              </div>
+              <div>
+                <div style={{ color:C.faint, fontSize:11, letterSpacing:"0.08em", marginBottom:4 }}>LAST SESSION</div>
+                <div style={{ color:C.text, fontSize:13, fontWeight:600 }}>{data.sessions?.[data.sessions.length-1]?.date || "—"}</div>
+                <div style={{ color:C.muted, fontSize:11 }}>{data.sessions?.slice(-1)[0]?.time ? new Date(data.sessions.slice(-1)[0].time).toLocaleTimeString() : ""}</div>
+              </div>
+            </div>
+
+            {mostVisited && (
+              <div style={{ background:C.elevated, border:`1px solid ${C.borderHi}`, borderLeft:`3px solid ${C.accent}`, borderRadius:14, padding:"14px 18px", marginBottom:14 }}>
+                <div style={{ color:C.faint, fontSize:11, letterSpacing:"0.08em", marginBottom:4 }}>MOST VISITED SECTION</div>
+                <div style={{ color:C.accent, fontSize:16, fontWeight:700, textTransform:"capitalize" }}>{mostVisited[0]} <span style={{ color:C.muted, fontSize:13, fontWeight:400 }}>— {mostVisited[1]} clicks</span></div>
+              </div>
+            )}
+
+            <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 18px", marginBottom:14 }}>
+              <div style={{ color:C.faint, fontSize:11, letterSpacing:"0.08em", marginBottom:14 }}>SECTION CLICKS</div>
+              {["home","goals","affirmations","gratitude","vision"].map(t => {
+                const cnt = data.tabClicks?.[t] || 0;
+                const max = Math.max(...Object.values(data.tabClicks || { x:1 }), 1);
+                return (
+                  <div key={t} style={{ marginBottom:12 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                      <span style={{ fontSize:13, color:C.text, textTransform:"capitalize" }}>{t}</span>
+                      <span style={{ fontSize:12, color:C.accent, fontWeight:600 }}>{cnt}</span>
+                    </div>
+                    <div style={{ height:5, borderRadius:3, background:C.border }}>
+                      <div style={{ height:"100%", width:`${(cnt/max)*100}%`, background:C.accent, borderRadius:3, transition:"width 0.5s" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {dayEntries.length > 0 && (
+              <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 18px", marginBottom:14 }}>
+                <div style={{ color:C.faint, fontSize:11, letterSpacing:"0.08em", marginBottom:14 }}>SESSIONS BY DAY (last 14 days)</div>
+                {dayEntries.map(([date, cnt]) => {
+                  const maxCnt = Math.max(...dayEntries.map(e => e[1]), 1);
+                  return (
+                    <div key={date} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                      <div style={{ width:110, fontSize:12, color:C.muted, flexShrink:0 }}>{date}</div>
+                      <div style={{ flex:1, height:5, borderRadius:3, background:C.border }}>
+                        <div style={{ height:"100%", width:`${(cnt/maxCnt)*100}%`, background:"#10b981", borderRadius:3 }} />
+                      </div>
+                      <div style={{ width:20, fontSize:12, color:C.text, fontWeight:600, textAlign:"right" }}>{cnt}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 18px", marginBottom:16 }}>
+              <div style={{ color:C.faint, fontSize:11, letterSpacing:"0.08em", marginBottom:14 }}>RECENT SESSIONS LOG (last 20)</div>
+              <div style={{ maxHeight:220, overflowY:"auto" }}>
+                {(data.sessions || []).slice(-20).reverse().map((s, i) => (
+                  <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.border}`, fontSize:12 }}>
+                    <span style={{ color:C.text }}>{s.date}</span>
+                    <span style={{ color:C.muted }}>{new Date(s.time).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ background:"rgba(200,169,110,0.06)", border:`1px solid rgba(200,169,110,0.2)`, borderRadius:12, padding:"12px 16px", marginBottom:16 }}>
+              <div style={{ color:C.accent, fontSize:12, fontWeight:600, marginBottom:4 }}>ℹ️ About this data</div>
+              <div style={{ color:C.muted, fontSize:12, lineHeight:1.7 }}>
+                This panel shows <strong style={{color:C.text}}>your own device's</strong> localStorage data.
+                All-user analytics (page views, events, geographic data, devices) are tracked via <strong style={{color:C.text}}>Google Analytics</strong> — check your GA dashboard at analytics.google.com for real-time multi-user data.
+              </div>
+            </div>
+
+            <button onClick={clearData} style={{ background:"transparent", border:"1px solid rgba(239,68,68,0.3)", color:"rgba(239,68,68,0.7)", borderRadius:10, padding:"10px 20px", fontSize:13, cursor:"pointer", width:"100%" }}>
+              🗑 Clear All Local Analytics Data
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Admin Login ──
+function AdminLogin({ onSuccess, onClose }) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState(false);
+  const C = { bg:"#0a0a0f", surface:"#111118", elevated:"#18181f", border:"rgba(255,255,255,0.07)", borderHi:"rgba(255,255,255,0.13)", accent:"#c8a96e", text:"#f0ede8", muted:"rgba(240,237,232,0.45)", faint:"rgba(240,237,232,0.18)" };
+  const submit = () => {
+    if (pw === ADMIN_PASSWORD) { onSuccess(); setErr(false); }
+    else { setErr(true); setPw(""); }
+  };
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", zIndex:250, display:"flex", alignItems:"center", justifyContent:"center", padding:20, backdropFilter:"blur(6px)" }}>
+      <div style={{ background:C.elevated, border:`1px solid ${C.borderHi}`, borderRadius:20, padding:"32px 28px", maxWidth:360, width:"100%", textAlign:"center" }}>
+        <div style={{ fontSize:32, marginBottom:12 }}>🔐</div>
+        <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:6 }}>Admin Access</div>
+        <div style={{ color:C.muted, fontSize:13, marginBottom:22 }}>Enter your admin password to view analytics</div>
+        <input
+          type="password"
+          placeholder="Password"
+          value={pw}
+          onChange={e => { setPw(e.target.value); setErr(false); }}
+          onKeyDown={e => e.key === "Enter" && submit()}
+          style={{ background:C.surface, border:`1px solid ${err ? "rgba(239,68,68,0.5)" : C.border}`, borderRadius:10, color:C.text, fontSize:15, padding:"12px 14px", outline:"none", width:"100%", marginBottom:err ? 8 : 14, fontFamily:"inherit", textAlign:"center", letterSpacing:"0.1em" }}
+          autoFocus
+        />
+        {err && <div style={{ color:"#ef4444", fontSize:12, marginBottom:12 }}>Incorrect password. Try again.</div>}
+        <button onClick={submit} style={{ background:C.accent, border:"none", color:"#0a0a0f", borderRadius:10, padding:"12px 0", fontWeight:700, fontSize:14, width:"100%", cursor:"pointer", marginBottom:10 }}>Unlock</button>
+        <button onClick={onClose} style={{ background:"transparent", border:"none", color:C.muted, fontSize:13, cursor:"pointer" }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ──
+function App() {
+  useEffect(() => { recordVisit(); }, []);
+
+  const [tab, setTab] = useState("home");
+  const [affIdx, setAffIdx] = useStorage("aff_idx", 0);
+  const [customAffs, setCustomAffs] = useStorage("custom_affs", []);
+  const [goals, setGoals] = useStorage("goals", []);
+  const [gratitude, setGratitude] = useStorage("gratitude", {});
+  const [userVision, setUserVision] = useStorage("user_vision2", []);
+  const [deletedDefaults, setDeletedDefaults] = useStorage("deleted_defaults", []);
+  const [streak, setStreak] = useStorage("streak", { count:0, last:"" });
+  const [newGoal, setNewGoal] = useState({ title:"", category:"Career", progress:0 });
+  const [newVision, setNewVision] = useState({ url:"", label:"", category:"Career" });
+  const [newAff, setNewAff] = useState("");
+  const [todayGrat, setTodayGrat] = useState(["","",""]);
+  const [savedToday, setSavedToday] = useState(false);
+  const [burst, setBurst] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminTapCount, setAdminTapCount] = useState(0);
+  const fileInputRef = useRef(null);
+
+  const allAffs = [...AFFIRMATIONS, ...customAffs];
+  const quote = QUOTES[new Date().getDay() % QUOTES.length];
+  const goalCategories = [...new Set(goals.map(g => g.category))];
+
+  useEffect(() => {
+    const t = todayStr();
+    if (gratitude[t]) { setSavedToday(true); setTodayGrat(gratitude[t]); }
+  }, []);
+
+  const handleBrandTap = () => {
+    const next = adminTapCount + 1;
+    setAdminTapCount(next);
+    if (next >= 5) { setAdminTapCount(0); setShowAdminLogin(true); }
+  };
+
+  const switchTab = (id) => { setTab(id); recordTab(id); };
+
+  const effectiveVision = [
+    ...DEFAULT_VISION.filter(d => !deletedDefaults.includes(d.category) && !userVision.some(u => u.category === d.category)),
+    ...userVision,
+  ];
+
+  const nextAff = () => { setAffIdx((affIdx+1)%allAffs.length); recordEvent("aff"); };
+  const prevAff = () => { setAffIdx((affIdx-1+allAffs.length)%allAffs.length); recordEvent("aff"); };
+
+  const addGoal = () => {
+    if (!newGoal.title.trim()) return;
+    setGoals([...goals, { ...newGoal, id:Date.now(), done:false }]);
+    setNewGoal({ title:"", category:"Career", progress:0 });
+    recordEvent("goal");
+  };
+
+  const updateProgress = (id, p) => setGoals(goals.map(g => g.id===id ? {...g, progress:p} : g));
+  const toggleGoal = (id) => setGoals(goals.map(g => g.id===id ? {...g, done:!g.done, progress:g.done?g.progress:100} : g));
+  const deleteGoal = (id) => setGoals(goals.filter(g => g.id!==id));
+
+  const saveGratitude = () => {
+    if (todayGrat.every(t => !t.trim())) return;
+    const t = todayStr();
+    setGratitude({...gratitude, [t]:todayGrat});
+    setSavedToday(true);
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    setStreak({ count: streak.last===yesterday.toDateString() ? streak.count+1 : streak.last===t ? streak.count : 1, last:t });
+    setBurst(true); setTimeout(()=>setBurst(false),1200);
+    recordEvent("grat");
+  };
+
+  const addVisionItem = (url, label, category) => {
+    const item = { id:Date.now(), url, label:label||category, category };
+    setUserVision([...userVision.filter(u=>u.category!==category), item]);
+    recordEvent("vision");
+  };
+
+  const handleAddVisionUrl = () => {
+    if (!newVision.url.trim()) return;
+    addVisionItem(newVision.url.trim(), newVision.label, newVision.category);
+    setNewVision({ url:"", label:"", category:"Career" });
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      addVisionItem(ev.target.result, newVision.label||file.name.replace(/\.[^.]+$/,""), newVision.category);
+      setNewVision(v=>({...v, url:"", label:""}));
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const deleteVisionItem = (item) => {
+    if (String(item.id).startsWith("dv")) {
+      setDeletedDefaults([...deletedDefaults.filter(c=>c!==item.category), item.category]);
+    } else {
+      setUserVision(userVision.filter(u=>u.id!==item.id));
+    }
+  };
+
+  const addCustomAff = () => {
+    if (!newAff.trim()) return;
+    setCustomAffs([...customAffs, newAff.trim()]);
+    setNewAff("");
+  };
+
+  const completedGoals = goals.filter(g=>g.done).length;
+
+  const tabs = [
+    { id:"home",         label:"Overview", sym:"◈" },
+    { id:"goals",        label:"Goals",    sym:"◎" },
+    { id:"affirmations", label:"Affirm",   sym:"✦" },
+    { id:"gratitude",    label:"Gratitude",sym:"❋" },
+    { id:"vision",       label:"Vision",   sym:"⬡" },
+  ];
+
+  const C = {
+    bg:"#0a0a0f", surface:"#111118", elevated:"#18181f",
+    border:"rgba(255,255,255,0.07)", borderHi:"rgba(255,255,255,0.13)",
+    accent:"#c8a96e", accentDim:"rgba(200,169,110,0.12)", accentMid:"rgba(200,169,110,0.25)",
+    text:"#f0ede8", muted:"rgba(240,237,232,0.45)", faint:"rgba(240,237,232,0.18)",
+  };
+
+  const css = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{background:${C.bg};-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
+    ::-webkit-scrollbar{width:3px;height:3px}
+    ::-webkit-scrollbar-thumb{background:rgba(200,169,110,0.2);border-radius:4px}
+    input,textarea,select{background:${C.elevated};border:1px solid ${C.border};border-radius:10px;color:${C.text};font-size:15px;padding:12px 14px;outline:none;width:100%;-webkit-appearance:none;appearance:none;transition:border 0.2s;font-family:inherit}
+    input:focus,textarea:focus,select:focus{border-color:${C.accentMid};box-shadow:0 0 0 3px rgba(200,169,110,0.07)}
+    input::placeholder,textarea::placeholder{color:${C.faint}}
+    select option{background:#18181f;color:${C.text}}
+    button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;font-family:inherit;cursor:pointer}
+    @keyframes pop{0%{transform:scale(0.97);opacity:0}100%{transform:scale(1);opacity:1}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    @keyframes floatBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(200,169,110,0)}50%{box-shadow:0 0 16px 2px rgba(200,169,110,0.15)}}
+    @keyframes floatPart{0%{opacity:0;transform:translateY(0) scale(0.8)}30%{opacity:1}100%{opacity:0;transform:translateY(-70px) scale(1.1)}}
+    @keyframes shimmer{0%,100%{opacity:1}50%{opacity:0.55}}
+    .card{background:${C.surface};border:1px solid ${C.border};border-radius:16px;padding:18px 16px;margin-bottom:14px;animation:fadeUp 0.25s ease both}
+    .card-elevated{background:${C.elevated};border:1px solid ${C.borderHi};border-radius:16px;padding:18px 16px;margin-bottom:14px}
+    .btn-primary{background:${C.accent};border:none;color:#0a0a0f;border-radius:10px;padding:13px 22px;font-weight:700;font-size:14px;letter-spacing:0.04em;transition:opacity 0.15s,transform 0.1s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+    .btn-primary:hover{opacity:0.86}
+    .btn-primary:active{transform:scale(0.96)}
+    .btn-ghost{background:transparent;border:1px solid ${C.borderHi};color:${C.muted};border-radius:10px;padding:11px 16px;font-size:13px;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px}
+    .btn-ghost:hover{border-color:${C.accentMid};color:${C.accent}}
+    .btn-upload{background:${C.elevated};border:1.5px dashed ${C.borderHi};color:${C.muted};border-radius:10px;padding:13px 18px;font-size:13px;transition:all 0.15s;display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:10px}
+    .btn-upload:hover{border-color:${C.accentMid};color:${C.accent};background:rgba(200,169,110,0.04)}
+    .btn-danger{background:transparent;border:1px solid rgba(239,68,68,0.2);color:rgba(239,68,68,0.55);border-radius:8px;padding:6px 11px;font-size:12px;transition:all 0.15s}
+    .btn-danger:hover{border-color:rgba(239,68,68,0.5);color:#ef4444}
+    .label{font-size:11px;letter-spacing:0.1em;font-weight:600;color:${C.faint};text-transform:uppercase;margin-bottom:8px}
+    .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;border-radius:20px;padding:3px 10px}
+    .range-input{width:100%;height:5px;border-radius:3px;accent-color:${C.accent};cursor:pointer;border:none!important;padding:0!important;-webkit-appearance:auto!important;appearance:auto!important;background:${C.border}}
+    .tab-active{color:${C.accent}!important;border-bottom:2px solid ${C.accent}!important}
+    .tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:${C.muted};font-size:11px;padding:10px 10px 9px;letter-spacing:0.05em;font-weight:500;transition:color 0.2s;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:56px}
+    .tab-btn:hover{color:${C.text}}
+    .dv-card{border-radius:16px;overflow:hidden;border:1px solid ${C.borderHi};position:relative;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadeUp 0.3s ease both}
+    .dv-card-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center}
+    .dv-emoji{font-size:40px;animation:floatBob 3s ease-in-out infinite}
+    .dv-orb{position:absolute;border-radius:50%;filter:blur(38px);opacity:0.22;pointer-events:none}
+    .dv-ring{position:absolute;width:88px;height:88px;border-radius:50%;border:1px solid;opacity:0.13;animation:spin 14s linear infinite}
+    .dv-delete,.uv-delete{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);border:none;color:rgba(255,255,255,0.6);border-radius:50%;width:28px;height:28px;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;cursor:pointer}
+    .dv-card:hover .dv-delete,.uv-card:hover .uv-delete{opacity:1}
+    .uv-card{border-radius:16px;overflow:hidden;border:1px solid ${C.border};position:relative;aspect-ratio:4/3;animation:fadeUp 0.3s ease both}
+    .stat-glow{animation:glow 3s ease-in-out infinite}
+    .burst-p{position:fixed;pointer-events:none;z-index:99;font-size:26px;animation:floatPart 1.3s ease forwards}
+    @media(max-width:600px){
+      .dv-delete,.uv-delete{opacity:1!important}
+      .btn-primary,.btn-ghost{padding:12px 14px;font-size:13px}
+      .card,.card-elevated{padding:14px 12px}
+      .dv-emoji{font-size:34px}
+    }
+  `;
+
+  const DefaultCard = ({ item }) => {
+    const m = CAT_META[item.category];
+    return (
+      <div className="dv-card" style={{ background:m.grad }}>
+        <div className="dv-orb" style={{ background:m.color, width:110, height:110, top:"5%", left:"15%" }} />
+        <div className="dv-orb" style={{ background:m.color, width:70,  height:70,  bottom:"8%", right:"10%" }} />
+        <div className="dv-ring" style={{ borderColor:m.color }} />
+        <div className="dv-card-inner">
+          <div className="dv-emoji">{item.emoji}</div>
+          <div style={{ fontSize:15, fontWeight:700, color:C.text, lineHeight:1.3 }}>{item.label}</div>
+          <div style={{ fontSize:11, color:m.color, fontWeight:500, letterSpacing:"0.03em" }}>{item.tagline}</div>
+          <span className="tag" style={{ background:m.light, color:m.color, marginTop:4, fontSize:10 }}>{item.icon} {item.category}</span>
+        </div>
+        <button className="dv-delete" onClick={() => deleteVisionItem(item)}>✕</button>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif" }}>
+      <style>{css}</style>
+
+      {burst && ["✦","★","◈","✦","★","◈","✦","★"].map((s,i) => (
+        <div key={i} className="burst-p" style={{ left:`${15+Math.random()*70}%`, top:`${25+Math.random()*45}%`, animationDelay:`${i*0.08}s`, color:C.accent, opacity:0 }}>{s}</div>
+      ))}
+
+      {showAdminLogin && <AdminLogin onSuccess={() => { setShowAdminLogin(false); setShowAdmin(true); }} onClose={() => setShowAdminLogin(false)} />}
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
+
+      {showContact && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20, backdropFilter:"blur(5px)" }} onClick={() => setShowContact(false)}>
+          <div style={{ background:C.elevated, border:`1px solid ${C.borderHi}`, borderRadius:20, padding:"28px 24px", maxWidth:380, width:"100%", animation:"pop 0.2s ease" }} onClick={e=>e.stopPropagation()}>
+            <div style={{ textAlign:"center", fontSize:24, marginBottom:14 }}>✦</div>
+            <div style={{ fontSize:17, fontWeight:700, textAlign:"center", marginBottom:6 }}>Contact & Support</div>
+            <div style={{ color:C.muted, fontSize:13, textAlign:"center", marginBottom:20, lineHeight:1.65 }}>Have feedback, a bug to report, or a question? Reach out anytime.</div>
+            <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+              <span style={{ fontSize:20 }}>📧</span>
+              <div>
+                <div style={{ fontSize:11, color:C.faint, letterSpacing:"0.08em", marginBottom:3 }}>EMAIL</div>
+                <a href="mailto:mayaravenkym@gmail.com" style={{ color:C.accent, fontSize:14, fontWeight:600, textDecoration:"none" }}>mayaravenkym@gmail.com</a>
+              </div>
+            </div>
+            <button className="btn-primary" style={{ width:"100%" }} onClick={() => setShowContact(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      <input ref={fileInputRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleFileUpload} />
+
+      <nav style={{ borderBottom:`1px solid ${C.border}`, background:C.bg, position:"sticky", top:0, zIndex:20, display:"flex", alignItems:"stretch", padding:"0 6px", overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
+        <button onClick={handleBrandTap} style={{ fontSize:13, fontWeight:800, color:C.accent, letterSpacing:"0.1em", display:"flex", alignItems:"center", padding:"0 10px", whiteSpace:"nowrap", flexShrink:0, background:"transparent", border:"none" }} title="MANIFEST">MANIFEST</button>
+        {tabs.map(t => (
+          <button key={t.id} className={`tab-btn${tab===t.id?" tab-active":""}`} onClick={() => switchTab(t.id)}>
+            <span style={{ fontSize:13 }}>{t.sym}</span><span>{t.label}</span>
+          </button>
+        ))}
+        <button onClick={() => setShowContact(true)} style={{ marginLeft:"auto", background:"transparent", border:"none", color:C.faint, fontSize:18, padding:"0 12px", flexShrink:0, display:"flex", alignItems:"center" }} title="Contact">✉</button>
+      </nav>
+
+      <div style={{ maxWidth:820, margin:"0 auto", padding:"20px 14px 60px" }}>
+
+        {tab==="home" && (
+          <>
+            <div style={{ marginBottom:20, animation:"fadeUp 0.35s ease" }}>
+              <div style={{ fontSize:20, fontWeight:700, marginBottom:3 }}>Good {new Date().getHours()<12?"morning":new Date().getHours()<17?"afternoon":"evening"} ✦</div>
+              <div style={{ color:C.muted, fontSize:13 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:14 }}>
+              {[{n:goals.length,l:"Goals",s:"◎",c:C.text},{n:completedGoals,l:"Done",s:"✦",c:C.accent},{n:streak.count,l:"Streak",s:"❋",c:"#10b981"}].map(({n,l,s,c},i)=>(
+                <div key={l} className="card stat-glow" style={{ textAlign:"center", padding:"16px 8px", animationDelay:`${i*0.08}s` }}>
+                  <div style={{ fontSize:16, color:c, marginBottom:6 }}>{s}</div>
+                  <div style={{ fontSize:28, fontWeight:700, color:c, lineHeight:1 }}>{n}</div>
+                  <div style={{ color:C.muted, fontSize:11, marginTop:5, letterSpacing:"0.07em" }}>{l.toUpperCase()}</div>
+                </div>
+              ))}
+            </div>
+            <div className="card-elevated" style={{ borderLeft:`3px solid ${C.accent}` }}>
+              <div className="label">Quote of the day</div>
+              <p style={{ fontSize:15, lineHeight:1.75, fontStyle:"italic", marginBottom:8 }}>"{quote.text}"</p>
+              <div style={{ color:C.accent, fontSize:13, fontWeight:600 }}>— {quote.author}</div>
+            </div>
+            <div className="card">
+              <div className="label">Daily Affirmation</div>
+              <p key={affIdx} style={{ fontSize:17, fontWeight:600, lineHeight:1.6, marginBottom:18, minHeight:52, animation:"fadeUp 0.3s ease" }}>{allAffs[affIdx%allAffs.length]}</p>
+              <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+                <button className="btn-ghost" style={{ fontSize:12, padding:"9px 14px" }} onClick={prevAff}>← Prev</button>
+                <button className="btn-ghost" style={{ fontSize:12, padding:"9px 14px" }} onClick={nextAff}>Next →</button>
+                <span style={{ marginLeft:"auto", color:C.faint, fontSize:12 }}>{(affIdx%allAffs.length)+1}/{allAffs.length}</span>
+              </div>
+            </div>
+            {goals.filter(g=>!g.done).length>0 && (
+              <div className="card">
+                <div className="label" style={{ marginBottom:14 }}>Active Goals</div>
+                {goals.filter(g=>!g.done).slice(0,3).map(g=>{
+                  const m=CAT_META[g.category];
+                  return (
+                    <div key={g.id} style={{ marginBottom:16 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6, gap:8 }}>
+                        <span style={{ fontSize:13, fontWeight:600, flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{g.title}</span>
+                        <span className="tag" style={{ background:m.light, color:m.color, flexShrink:0 }}>{m.icon} {g.category}</span>
+                      </div>
+                      <div style={{ height:4, borderRadius:4, background:C.border, overflow:"hidden" }}>
+                        <div style={{ height:"100%", width:`${g.progress}%`, background:m.color, borderRadius:4, transition:"width 0.5s" }} />
+                      </div>
+                      <div style={{ color:C.faint, fontSize:11, marginTop:4 }}>{g.progress}%</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {tab==="goals" && (
+          <>
+            <div style={{ fontSize:18, fontWeight:700, marginBottom:18 }}>Goal Tracker</div>
+            <div className="card">
+              <div className="label">New Goal</div>
+              <input style={{ marginBottom:10 }} placeholder="What do you want to achieve?" value={newGoal.title} onChange={e=>setNewGoal({...newGoal,title:e.target.value})} onKeyDown={e=>e.key==="Enter"&&addGoal()} />
+              <select style={{ marginBottom:12 }} value={newGoal.category} onChange={e=>setNewGoal({...newGoal,category:e.target.value})}>
+                {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+              </select>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ color:C.muted, fontSize:13, marginBottom:8 }}>Starting progress — <span style={{ color:C.accent, fontWeight:600 }}>{newGoal.progress}%</span></div>
+                <input type="range" className="range-input" min="0" max="100" value={newGoal.progress} onChange={e=>setNewGoal({...newGoal,progress:+e.target.value})} />
+              </div>
+              <button className="btn-primary" style={{ width:"100%" }} onClick={addGoal}>Add Goal</button>
+            </div>
+            {goals.length===0
+              ? <div className="card" style={{ textAlign:"center", padding:40, color:C.muted }}>No goals yet — set your first intention above.</div>
+              : goals.map((g,idx)=>{
+                  const m=CAT_META[g.category];
+                  return (
+                    <div key={g.id} className="card" style={{ borderLeft:g.done?`3px solid ${m.color}`:"3px solid transparent", opacity:g.done?0.72:1, animationDelay:`${idx*0.05}s` }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10, gap:8 }}>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14, fontWeight:700, textDecoration:g.done?"line-through":"none", marginBottom:6, wordBreak:"break-word" }}>{g.title}</div>
+                          <span className="tag" style={{ background:m.light, color:m.color }}>{m.icon} {g.category}</span>
+                        </div>
+                        <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                          <button className="btn-ghost" style={{ fontSize:11, padding:"6px 10px", color:g.done?"#10b981":C.muted, borderColor:g.done?"rgba(16,185,129,0.3)":C.borderHi }} onClick={()=>toggleGoal(g.id)}>{g.done?"✓ Done":"Complete"}</button>
+                          <button className="btn-danger" onClick={()=>deleteGoal(g.id)}>✕</button>
+                        </div>
+                      </div>
+                      {!g.done && (
+                        <>
+                          <div style={{ height:4, borderRadius:4, background:C.border, overflow:"hidden", marginBottom:8 }}>
+                            <div style={{ height:"100%", width:`${g.progress}%`, background:m.color, borderRadius:4, transition:"width 0.3s" }} />
+                          </div>
+                          <input type="range" className="range-input" min="0" max="100" value={g.progress} onChange={e=>updateProgress(g.id,+e.target.value)} />
+                          <div style={{ color:C.faint, fontSize:11, marginTop:4 }}>{g.progress}% complete</div>
+                        </>
+                      )}
+                      {g.done && <div style={{ color:"#10b981", fontSize:13, fontWeight:600, marginTop:4 }}>Manifested ✦</div>}
+                    </div>
+                  );
+                })
+            }
+          </>
+        )}
+
+        {tab==="affirmations" && (
+          <>
+            <div style={{ fontSize:18, fontWeight:700, marginBottom:18 }}>Affirmations</div>
+            <div className="card-elevated" style={{ textAlign:"center", padding:"40px 24px", borderColor:C.accentMid }}>
+              <div style={{ fontSize:26, color:C.accent, marginBottom:14, animation:"shimmer 2.5s ease-in-out infinite" }}>✦</div>
+              <p key={affIdx} style={{ fontSize:18, fontWeight:600, lineHeight:1.65, marginBottom:24, minHeight:58, animation:"fadeUp 0.3s ease" }}>{allAffs[affIdx%allAffs.length]}</p>
+              <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+                <button className="btn-ghost" onClick={prevAff}>← Previous</button>
+                <button className="btn-primary" onClick={nextAff}>Next →</button>
+              </div>
+              <div style={{ color:C.faint, fontSize:12, marginTop:14 }}>{(affIdx%allAffs.length)+1} of {allAffs.length}</div>
+            </div>
+            <div className="card">
+              <div className="label">Add Custom Affirmation</div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <input style={{ flex:1, minWidth:160 }} placeholder="I am..." value={newAff} onChange={e=>setNewAff(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCustomAff()} />
+                <button className="btn-primary" onClick={addCustomAff} style={{ flexShrink:0 }}>Add</button>
+              </div>
+            </div>
+            {customAffs.length>0 && (
+              <div className="card">
+                <div className="label">My Affirmations</div>
+                {customAffs.map((a,i)=>(
+                  <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"11px 0", borderBottom:i<customAffs.length-1?`1px solid ${C.border}`:"none", gap:10 }}>
+                    <span style={{ fontSize:14, flex:1 }}>{a}</span>
+                    <button className="btn-danger" onClick={()=>setCustomAffs(customAffs.filter((_,j)=>j!==i))}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {tab==="gratitude" && (
+          <>
+            <div style={{ fontSize:18, fontWeight:700, marginBottom:18 }}>Gratitude Journal</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
+              {[{n:streak.count,l:"Day Streak",sub:"days of gratitude",c:C.accent},{n:Object.keys(gratitude).length,l:"Total Entries",sub:"days journaled",c:C.text}].map(({n,l,sub,c})=>(
+                <div key={l} className="card" style={{ textAlign:"center", padding:"18px 12px" }}>
+                  <div style={{ fontSize:11, letterSpacing:"0.1em", color:C.faint, marginBottom:6 }}>{l.toUpperCase()}</div>
+                  <div style={{ fontSize:30, fontWeight:700, color:c, lineHeight:1 }}>{n}</div>
+                  <div style={{ color:C.muted, fontSize:12, marginTop:6 }}>{sub}</div>
+                </div>
+              ))}
+            </div>
+            <div className="card">
+              <div className="label">Today — {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+              {savedToday && <div style={{ color:"#10b981", fontSize:13, fontWeight:600, marginBottom:12 }}>✦ Today's entry saved</div>}
+              {[0,1,2].map(i=>(
+                <div key={i} style={{ marginBottom:12 }}>
+                  <div style={{ color:C.faint, fontSize:11, marginBottom:6, letterSpacing:"0.05em" }}>GRATEFUL FOR #{i+1}</div>
+                  <input placeholder={["Something that made you smile today...","A person you appreciate...","A blessing you often overlook..."][i]} value={todayGrat[i]} onChange={e=>{const n=[...todayGrat];n[i]=e.target.value;setTodayGrat(n);setSavedToday(false);}} />
+                </div>
+              ))}
+              <button className="btn-primary" style={{ width:"100%", marginTop:4 }} onClick={saveGratitude}>Save Entry</button>
+            </div>
+            {Object.keys(gratitude).filter(d=>d!==todayStr()).length>0 && (
+              <div className="card">
+                <div className="label" style={{ marginBottom:14 }}>Past Entries</div>
+                {Object.entries(gratitude).filter(([d])=>d!==todayStr()).reverse().slice(0,7).map(([date,items])=>(
+                  <div key={date} style={{ marginBottom:16, paddingBottom:16, borderBottom:`1px solid ${C.border}` }}>
+                    <div style={{ fontSize:11, color:C.accent, fontWeight:700, letterSpacing:"0.07em", marginBottom:8 }}>{date.toUpperCase()}</div>
+                    {items.filter(Boolean).map((item,j)=>(
+                      <div key={j} style={{ fontSize:13, color:C.muted, marginBottom:5, paddingLeft:12, borderLeft:`2px solid ${C.accentMid}` }}>{item}</div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {tab==="vision" && (
+          <>
+            <div style={{ fontSize:18, fontWeight:700, marginBottom:6 }}>Vision Board</div>
+            <div style={{ color:C.muted, fontSize:13, marginBottom:18, lineHeight:1.6 }}>
+              {goalCategories.length>0 ? `Aligned with your goals: ${goalCategories.join(" · ")}` : "Your curated vision board — add goals to personalise it further."}
+            </div>
+            <div className="card">
+              <div className="label">Add Your Vision</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+                <input placeholder="Label (e.g. Dream Home)" value={newVision.label} onChange={e=>setNewVision({...newVision,label:e.target.value})} />
+                <select value={newVision.category} onChange={e=>setNewVision({...newVision,category:e.target.value})}>
+                  {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <button className="btn-upload" onClick={()=>fileInputRef.current?.click()}>
+                <span style={{ fontSize:18 }}>📁</span> Upload Image from Device
+              </button>
+              <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8 }}>
+                <div style={{ flex:1, height:1, background:C.border }} />
+                <span style={{ color:C.faint, fontSize:11 }}>OR PASTE URL</span>
+                <div style={{ flex:1, height:1, background:C.border }} />
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <input style={{ flex:1 }} placeholder="https://..." value={newVision.url} onChange={e=>setNewVision({...newVision,url:e.target.value})} onKeyDown={e=>e.key==="Enter"&&handleAddVisionUrl()} />
+                <button className="btn-primary" onClick={handleAddVisionUrl} disabled={!newVision.url.trim()} style={{ flexShrink:0, opacity:newVision.url.trim()?1:0.4 }}>Add</button>
+              </div>
+              <div style={{ color:C.faint, fontSize:11, marginTop:8 }}>Adding an image for a category replaces that category's default card.</div>
+            </div>
+            {effectiveVision.length===0
+              ? <div className="card" style={{ textAlign:"center", padding:48, color:C.muted }}>Vision board is empty.</div>
+              : (
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))", gap:12 }}>
+                  {effectiveVision.map(v=>{
+                    const isDefault = String(v.id).startsWith("dv");
+                    if (isDefault) return <DefaultCard key={v.id} item={v} />;
+                    return (
+                      <div key={v.id} className="uv-card">
+                        <img src={v.url} alt={v.label} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} onError={e=>e.target.style.display="none"} />
+                        <div style={{ position:"absolute", bottom:0, left:0, right:0, background:"linear-gradient(transparent,rgba(0,0,0,0.88))", padding:"28px 12px 12px" }}>
+                          <div style={{ color:"#fff", fontWeight:700, fontSize:13 }}>{v.label}</div>
+                          <span className="tag" style={{ background:CAT_META[v.category]?.light, color:CAT_META[v.category]?.color, marginTop:4, fontSize:10 }}>{CAT_META[v.category]?.icon} {v.category}</span>
+                        </div>
+                        <button className="uv-delete" onClick={()=>deleteVisionItem(v)}>✕</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            }
+          </>
+        )}
+      </div>
+
+      <div style={{ borderTop:`1px solid ${C.border}`, padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10, maxWidth:820, margin:"0 auto" }}>
+        <div style={{ color:C.faint, fontSize:12, letterSpacing:"0.06em" }}>MANIFEST ✦ Your daily abundance tool</div>
+        <button onClick={()=>setShowContact(true)} style={{ background:"transparent", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"6px 14px", fontSize:12, display:"flex", alignItems:"center", gap:6 }}>✉ Contact Support</button>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
