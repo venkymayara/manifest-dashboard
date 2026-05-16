@@ -437,11 +437,11 @@ function App() {
   const completedGoals = goals.filter(g=>g.done).length;
 
   const tabs = [
-    { id:"home",         label:"Overview", sym:"◈" },
-    { id:"vision",       label:"Vision",   sym:"⬡" },
-    { id:"goals",        label:"Goals",    sym:"◎" },
-    { id:"affirmations", label:"Affirm",   sym:"✦" },
-    { id:"gratitude",    label:"Gratitude",sym:"❋" },
+    { id:"home",         label:"Overview",     sym:"🏠" },
+    { id:"vision",       label:"Vision Board", sym:"🌟" },
+    { id:"goals",        label:"Goals",        sym:"🎯" },
+    { id:"affirmations", label:"Affirmations", sym:"✨" },
+    { id:"gratitude",    label:"Gratitude",    sym:"🙏" },
   ];
 
   const C = {
@@ -453,53 +453,234 @@ function App() {
 
   const css = `
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{background:${C.bg};-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
-    ::-webkit-scrollbar{width:3px;height:3px}
-    ::-webkit-scrollbar-thumb{background:rgba(200,169,110,0.2);border-radius:4px}
-    input,textarea,select{background:${C.elevated};border:1px solid ${C.border};border-radius:10px;color:${C.text};font-size:15px;padding:12px 14px;outline:none;width:100%;-webkit-appearance:none;appearance:none;transition:border 0.2s;font-family:inherit}
+    html,body{background:${C.bg};-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden;height:100%}
+    #root{height:100%}
+    ::-webkit-scrollbar{width:4px;height:4px}
+    ::-webkit-scrollbar-thumb{background:rgba(200,169,110,0.18);border-radius:4px}
+    ::-webkit-scrollbar-track{background:transparent}
+    input,textarea,select{background:${C.elevated};border:1px solid ${C.border};border-radius:10px;color:${C.text};font-size:14px;padding:11px 14px;outline:none;width:100%;-webkit-appearance:none;appearance:none;transition:border 0.2s;font-family:inherit}
     input:focus,textarea:focus,select:focus{border-color:${C.accentMid};box-shadow:0 0 0 3px rgba(200,169,110,0.07)}
     input::placeholder,textarea::placeholder{color:${C.faint}}
     select option{background:#18181f;color:${C.text}}
     button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;font-family:inherit;cursor:pointer}
     @keyframes pop{0%{transform:scale(0.97);opacity:0}100%{transform:scale(1);opacity:1}}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
     @keyframes floatBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
     @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
     @keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(200,169,110,0)}50%{box-shadow:0 0 16px 2px rgba(200,169,110,0.15)}}
     @keyframes floatPart{0%{opacity:0;transform:translateY(0) scale(0.8)}30%{opacity:1}100%{opacity:0;transform:translateY(-70px) scale(1.1)}}
     @keyframes shimmer{0%,100%{opacity:1}50%{opacity:0.55}}
-    .card{background:${C.surface};border:1px solid ${C.border};border-radius:16px;padding:18px 16px;margin-bottom:14px;animation:fadeUp 0.25s ease both}
-    .card-elevated{background:${C.elevated};border:1px solid ${C.borderHi};border-radius:16px;padding:18px 16px;margin-bottom:14px}
-    .btn-primary{background:${C.accent};border:none;color:#0a0a0f;border-radius:10px;padding:13px 22px;font-weight:700;font-size:14px;letter-spacing:0.04em;transition:opacity 0.15s,transform 0.1s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+
+    /* ── Layout shell ── */
+    .app-shell{display:flex;min-height:100vh}
+
+    /* ═══════════════════════════════════════
+       SIDEBAR — polished navbar style
+    ═══════════════════════════════════════ */
+    .sidebar{
+      width:240px;flex-shrink:0;
+      background:linear-gradient(180deg,#0e0e15 0%,#111118 100%);
+      border-right:1px solid rgba(255,255,255,0.06);
+      display:flex;flex-direction:column;
+      position:fixed;top:0;left:0;height:100vh;
+      z-index:30;overflow:hidden;
+    }
+
+    /* Brand / logo area */
+    .sidebar-brand{
+      padding:26px 20px 22px;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      flex-shrink:0;
+      display:flex;align-items:center;gap:12px;
+    }
+    .sidebar-logo{
+      width:34px;height:34px;border-radius:10px;
+      background:linear-gradient(135deg,rgba(200,169,110,0.25),rgba(200,169,110,0.08));
+      border:1px solid rgba(200,169,110,0.25);
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;flex-shrink:0;
+    }
+    .sidebar-brand-text{}
+    .sidebar-brand-name{font-size:14px;font-weight:800;color:${C.accent};letter-spacing:0.12em;display:block;line-height:1}
+    .sidebar-brand-sub{font-size:10px;color:${C.faint};margin-top:3px;letter-spacing:0.03em}
+
+    /* Nav section label */
+    .sidebar-section-label{
+      font-size:9.5px;font-weight:700;letter-spacing:0.14em;
+      color:rgba(240,237,232,0.2);text-transform:uppercase;
+      padding:18px 16px 6px;flex-shrink:0;
+    }
+
+    /* Nav area */
+    .sidebar-nav{flex:1;padding:8px 10px 10px;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+
+    /* Individual nav button */
+    .sidebar-btn{
+      background:none;border:none;
+      color:rgba(240,237,232,0.45);
+      font-size:13px;font-weight:500;
+      padding:10px 14px;border-radius:10px;
+      display:flex;align-items:center;gap:12px;
+      width:100%;text-align:left;
+      transition:background 0.18s,color 0.18s,box-shadow 0.18s;
+      letter-spacing:0.01em;position:relative;
+      cursor:pointer;
+    }
+    .sidebar-btn:hover{
+      background:rgba(255,255,255,0.05);
+      color:${C.text};
+    }
+    .sidebar-btn.active{
+      background:linear-gradient(90deg,rgba(200,169,110,0.16),rgba(200,169,110,0.06));
+      color:${C.accent};
+      font-weight:600;
+      box-shadow:inset 3px 0 0 ${C.accent};
+    }
+    .sidebar-btn .nav-icon{
+      width:32px;height:32px;border-radius:8px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:14px;flex-shrink:0;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.07);
+      transition:background 0.18s,border-color 0.18s;
+    }
+    .sidebar-btn.active .nav-icon{
+      background:rgba(200,169,110,0.15);
+      border-color:rgba(200,169,110,0.3);
+    }
+    .sidebar-btn .nav-label{flex:1;line-height:1}
+    .sidebar-btn .nav-badge{
+      font-size:10px;font-weight:700;
+      background:rgba(200,169,110,0.2);color:${C.accent};
+      border-radius:20px;padding:2px 7px;
+      line-height:1.4;
+    }
+
+    .sidebar-divider{height:1px;background:rgba(255,255,255,0.05);margin:8px 12px;}
+
+    /* Footer */
+    .sidebar-footer{
+      padding:14px 16px 20px;
+      border-top:1px solid rgba(255,255,255,0.06);
+      flex-shrink:0;
+    }
+    .sidebar-user{
+      display:flex;align-items:center;gap:10px;
+      padding:10px 12px;border-radius:10px;
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.07);
+      margin-bottom:10px;
+    }
+    .sidebar-avatar{
+      width:30px;height:30px;border-radius:50%;
+      background:linear-gradient(135deg,rgba(200,169,110,0.3),rgba(200,169,110,0.1));
+      border:1px solid rgba(200,169,110,0.25);
+      display:flex;align-items:center;justify-content:center;
+      font-size:13px;flex-shrink:0;
+    }
+    .sidebar-user-name{font-size:12px;font-weight:600;color:${C.text};line-height:1}
+    .sidebar-user-email{font-size:10px;color:${C.faint};margin-top:2px}
+
+    /* ═══════════════════════════════════════
+       TOP BAR (desktop)
+    ═══════════════════════════════════════ */
+    .topbar{
+      position:fixed;top:0;left:240px;right:0;height:58px;
+      background:rgba(10,10,15,0.92);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      z-index:20;display:flex;align-items:center;
+      padding:0 28px;gap:16px;
+    }
+    .topbar-left{display:flex;align-items:center;gap:10px;flex:1}
+    .topbar-page-icon{
+      width:30px;height:30px;border-radius:8px;
+      background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);
+      display:flex;align-items:center;justify-content:center;font-size:13px;
+    }
+    .topbar-title{font-size:15px;font-weight:700;color:${C.text}}
+    .topbar-date{font-size:12px;color:${C.muted};background:rgba(255,255,255,0.04);padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.07)}
+
+    /* ── Main content ── */
+    .main-content{margin-left:240px;padding-top:58px;flex:1;min-width:0;min-height:100vh}
+    .content-inner{padding:28px 32px 60px;max-width:1400px}
+
+    /* ── Grid layouts ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+    .vision-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:20px}
+
+    /* ── Cards ── */
+    .card{background:${C.surface};border:1px solid ${C.border};border-radius:14px;padding:20px;margin-bottom:16px;animation:fadeUp 0.25s ease both}
+    .card-elevated{background:${C.elevated};border:1px solid ${C.borderHi};border-radius:14px;padding:20px;margin-bottom:16px}
+    .card-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+    /* ── Buttons ── */
+    .btn-primary{background:${C.accent};border:none;color:#0a0a0f;border-radius:9px;padding:11px 20px;font-weight:700;font-size:13px;letter-spacing:0.04em;transition:opacity 0.15s,transform 0.1s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
     .btn-primary:hover{opacity:0.86}
-    .btn-primary:active{transform:scale(0.96)}
-    .btn-ghost{background:transparent;border:1px solid ${C.borderHi};color:${C.muted};border-radius:10px;padding:11px 16px;font-size:13px;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px}
+    .btn-primary:active{transform:scale(0.97)}
+    .btn-ghost{background:transparent;border:1px solid ${C.borderHi};color:${C.muted};border-radius:9px;padding:10px 16px;font-size:13px;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px}
     .btn-ghost:hover{border-color:${C.accentMid};color:${C.accent}}
-    .btn-upload{background:${C.elevated};border:1.5px dashed ${C.borderHi};color:${C.muted};border-radius:10px;padding:13px 18px;font-size:13px;transition:all 0.15s;display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:10px}
+    .btn-upload{background:${C.elevated};border:1.5px dashed ${C.borderHi};color:${C.muted};border-radius:10px;padding:12px 18px;font-size:13px;transition:all 0.15s;display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:10px}
     .btn-upload:hover{border-color:${C.accentMid};color:${C.accent};background:rgba(200,169,110,0.04)}
-    .btn-danger{background:transparent;border:1px solid rgba(239,68,68,0.2);color:rgba(239,68,68,0.55);border-radius:8px;padding:6px 11px;font-size:12px;transition:all 0.15s}
+    .btn-danger{background:transparent;border:1px solid rgba(239,68,68,0.2);color:rgba(239,68,68,0.55);border-radius:8px;padding:5px 10px;font-size:12px;transition:all 0.15s}
     .btn-danger:hover{border-color:rgba(239,68,68,0.5);color:#ef4444}
-    .label{font-size:11px;letter-spacing:0.1em;font-weight:600;color:${C.faint};text-transform:uppercase;margin-bottom:8px}
+    .btn-contact{background:transparent;border:1px solid ${C.border};color:${C.muted};border-radius:8px;padding:8px 14px;font-size:12px;display:flex;align-items:center;gap:6px;width:100%;justify-content:center;transition:all 0.15s}
+    .btn-contact:hover{border-color:${C.accentMid};color:${C.accent}}
+
+    /* ── Misc ── */
+    .label{font-size:11px;letter-spacing:0.1em;font-weight:600;color:${C.faint};text-transform:uppercase;margin-bottom:10px}
     .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;border-radius:20px;padding:3px 10px}
     .range-input{width:100%;height:5px;border-radius:3px;accent-color:${C.accent};cursor:pointer;border:none!important;padding:0!important;-webkit-appearance:auto!important;appearance:auto!important;background:${C.border}}
-    .tab-active{color:${C.accent}!important;border-bottom:2px solid ${C.accent}!important}
-    .tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:${C.muted};font-size:11px;padding:10px 10px 9px;letter-spacing:0.05em;font-weight:500;transition:color 0.2s;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:56px}
-    .tab-btn:hover{color:${C.text}}
-    .dv-card{border-radius:16px;overflow:hidden;border:1px solid ${C.borderHi};position:relative;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadeUp 0.3s ease both}
+    .dv-card{border-radius:14px;overflow:hidden;border:1px solid ${C.borderHi};position:relative;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadeUp 0.3s ease both}
     .dv-card-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center}
     .dv-emoji{font-size:40px;animation:floatBob 3s ease-in-out infinite}
     .dv-orb{position:absolute;border-radius:50%;filter:blur(38px);opacity:0.22;pointer-events:none}
     .dv-ring{position:absolute;width:88px;height:88px;border-radius:50%;border:1px solid;opacity:0.13;animation:spin 14s linear infinite}
     .dv-delete,.uv-delete{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);border:none;color:rgba(255,255,255,0.6);border-radius:50%;width:28px;height:28px;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;cursor:pointer}
     .dv-card:hover .dv-delete,.uv-card:hover .uv-delete{opacity:1}
-    .uv-card{border-radius:16px;overflow:hidden;border:1px solid ${C.border};position:relative;aspect-ratio:4/3;animation:fadeUp 0.3s ease both}
+    .uv-card{border-radius:14px;overflow:hidden;border:1px solid ${C.border};position:relative;aspect-ratio:4/3;animation:fadeUp 0.3s ease both}
     .stat-glow{animation:glow 3s ease-in-out infinite}
     .burst-p{position:fixed;pointer-events:none;z-index:99;font-size:26px;animation:floatPart 1.3s ease forwards}
-    @media(max-width:600px){
+    .section-title{font-size:20px;font-weight:700;margin-bottom:6px}
+    .section-sub{color:${C.muted};font-size:13px;margin-bottom:20px;line-height:1.6}
+    .page-header{margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid ${C.border}}
+
+    /* ── Mobile top nav (hidden on desktop) ── */
+    .mobile-nav{display:none}
+    .mobile-brand{display:none}
+    .responsive-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0}
+    .responsive-grid-340{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;min-width:0}
+
+    @media(max-width:768px){
+      .sidebar{display:none !important}
+      .sidebar-brand,.sidebar-footer{display:none !important}
+      .topbar{display:none}
+      .main-content{margin-left:0;padding-top:72px}
+      .content-inner{padding:16px 14px 100px}
+      .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:${C.surface};border-top:1px solid ${C.border};z-index:30;padding:6px 4px calc(10px + env(safe-area-inset-bottom));}
+      .responsive-grid-2,.responsive-grid-340{grid-template-columns:1fr}
+      .mobile-nav-btn{flex:1;background:none;border:none;color:${C.muted};font-size:9px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:0.04em;font-weight:500;transition:color 0.2s}
+      .mobile-nav-btn.active{color:${C.accent}}
+      .mobile-nav-btn .sym{font-size:16px}
+      .mobile-brand{display:flex;position:fixed;top:0;left:0;right:0;z-index:35;justify-content:space-between;align-items:center;gap:10px;padding:14px 14px 12px;background:${C.surface};border-bottom:1px solid ${C.border}}
+      .mobile-brand-name{font-size:15px;font-weight:800;color:${C.accent};letter-spacing:0.12em}
+      .mobile-brand button{background:transparent;border:none;color:${C.faint};font-size:18px;display:flex;align-items:center;justify-content:center;padding:0;margin:0}
+      .stats-grid{grid-template-columns:1fr 1fr 1fr}
+      .card-row{grid-template-columns:1fr 1fr}
+      .vision-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
       .dv-delete,.uv-delete{opacity:1!important}
-      .btn-primary,.btn-ghost{padding:12px 14px;font-size:13px}
-      .card,.card-elevated{padding:14px 12px}
-      .dv-emoji{font-size:34px}
+      .dv-emoji{font-size:32px}
+      .content-inner{padding:14px 12px 88px}
+    }
+
+    @media(min-width:769px) and (max-width:1100px){
+      .sidebar{width:220px}
+      .topbar{left:220px}
+      .main-content{margin-left:220px}
+      .content-inner{padding:24px 24px 60px}
+      .vision-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
     }
   `;
 
@@ -522,7 +703,7 @@ function App() {
   };
 
   return (
-    <div style={{ background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif" }}>
+    <div className="app-shell" style={{ background:C.bg, color:C.text, fontFamily:"'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif" }}>
       <style>{css}</style>
 
       {burst && ["✦","★","◈","✦","★","◈","✦","★"].map((s,i) => (
@@ -552,49 +733,83 @@ function App() {
 
       <input ref={fileInputRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleFileUpload} />
 
-      <nav style={{ borderBottom:`1px solid ${C.border}`, background:C.bg, position:"sticky", top:0, zIndex:20, display:"flex", alignItems:"stretch", padding:"0 6px", overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
-        <button onClick={handleBrandTap} style={{ fontSize:13, fontWeight:800, color:C.accent, letterSpacing:"0.1em", display:"flex", alignItems:"center", padding:"0 10px", whiteSpace:"nowrap", flexShrink:0, background:"transparent", border:"none" }} title="MANIFEST">MANIFEST</button>
-        {tabs.map(t => (
-          <button key={t.id} className={`tab-btn${tab===t.id?" tab-active":""}`} onClick={() => switchTab(t.id)}>
-            <span style={{ fontSize:13 }}>{t.sym}</span><span>{t.label}</span>
-          </button>
-        ))}
-        <button onClick={() => setShowContact(true)} style={{ marginLeft:"auto", background:"transparent", border:"none", color:C.faint, fontSize:18, padding:"0 12px", flexShrink:0, display:"flex", alignItems:"center" }} title="Contact">✉</button>
-      </nav>
+      {/* ── Sidebar ── */}
+      <aside className="sidebar">
+        <div className="sidebar-brand" onClick={handleBrandTap} style={{ cursor:"pointer" }}>
+          <div className="sidebar-logo">✦</div>
+          <div className="sidebar-brand-text">
+            <span className="sidebar-brand-name">MANIFEST</span>
+            <span className="sidebar-brand-sub">Daily abundance tool</span>
+          </div>
+        </div>
+        <nav className="sidebar-nav">
+          <div className="sidebar-section-label">Navigation</div>
+          {tabs.map(t => (
+            <button key={t.id} className={`sidebar-btn${tab===t.id?" active":""}`} onClick={() => switchTab(t.id)}>
+              <span className="nav-icon">{t.sym}</span>
+              <span className="nav-label">{t.label}</span>
+              {t.id==="goals" && goals.length>0 && <span className="nav-badge">{goals.length}</span>}
+            </button>
+          ))}
+          <div className="sidebar-divider" />
+        </nav>
+        <div className="sidebar-footer">  
+          <button className="btn-contact" onClick={() => setShowContact(true)}>✉ Contact Support</button>
+        </div>
+      </aside>
 
-      <div style={{ maxWidth:820, margin:"0 auto", padding:"20px 14px 60px" }}>
+      {/* ── Top bar ── */}
+      <header className="topbar">
+        <div className="topbar-left">
+          <div className="topbar-page-icon">{tabs.find(t=>t.id===tab)?.sym}</div>
+          <div className="topbar-title">{tabs.find(t=>t.id===tab)?.label || "Overview"}</div>
+        </div>
+        <div className="topbar-date">{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>
+      </header>
+
+      {/* ── Mobile brand bar ── */}
+      <div className="mobile-brand" style={{ background:C.surface, borderBottom:`1px solid ${C.border}` }}>
+        <span className="mobile-brand-name" onClick={handleBrandTap}>MANIFEST ✦</span>
+        <button onClick={() => setShowContact(true)} style={{ marginLeft:"auto", background:"transparent", border:"none", color:C.faint, fontSize:18, display:"flex", alignItems:"center" }}>✉</button>
+      </div>
+
+      {/* ── Main content ── */}
+      <div className="main-content">
+      <div className="content-inner">
 
         {tab==="home" && (
           <>
-            <div style={{ marginBottom:20, animation:"fadeUp 0.35s ease" }}>
-              <div style={{ fontSize:20, fontWeight:700, marginBottom:3 }}>Good {new Date().getHours()<12?"morning":new Date().getHours()<17?"afternoon":"evening"} ✦</div>
+            <div className="page-header" style={{ animation:"fadeUp 0.35s ease" }}>
+              <div style={{ fontSize:24, fontWeight:700, marginBottom:4 }}>Good {new Date().getHours()<12?"morning":new Date().getHours()<17?"afternoon":"evening"} ✦</div>
               <div style={{ color:C.muted, fontSize:13 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:14 }}>
-              {[{n:goals.length,l:"Goals",s:"◎",c:C.text},{n:completedGoals,l:"Done",s:"✦",c:C.accent},{n:streak.count,l:"Streak",s:"❋",c:"#10b981"}].map(({n,l,s,c},i)=>(
-                <div key={l} className="card stat-glow" style={{ textAlign:"center", padding:"16px 8px", animationDelay:`${i*0.08}s` }}>
-                  <div style={{ fontSize:16, color:c, marginBottom:6 }}>{s}</div>
-                  <div style={{ fontSize:28, fontWeight:700, color:c, lineHeight:1 }}>{n}</div>
-                  <div style={{ color:C.muted, fontSize:11, marginTop:5, letterSpacing:"0.07em" }}>{l.toUpperCase()}</div>
+            <div className="stats-grid">
+              {[{n:goals.length,l:"Total Goals",s:"◎",c:C.text},{n:completedGoals,l:"Completed",s:"✦",c:C.accent},{n:streak.count,l:"Day Streak",s:"❋",c:"#10b981"}].map(({n,l,s,c},i)=>(
+                <div key={l} className="card stat-glow" style={{ textAlign:"center", padding:"22px 16px", animationDelay:`${i*0.08}s`, marginBottom:0 }}>
+                  <div style={{ fontSize:18, color:c, marginBottom:8 }}>{s}</div>
+                  <div style={{ fontSize:36, fontWeight:700, color:c, lineHeight:1 }}>{n}</div>
+                  <div style={{ color:C.muted, fontSize:11, marginTop:8, letterSpacing:"0.07em" }}>{l.toUpperCase()}</div>
                 </div>
               ))}
             </div>
-            <div className="card-elevated" style={{ borderLeft:`3px solid ${C.accent}` }}>
-              <div className="label">Quote of the day</div>
-              <p style={{ fontSize:15, lineHeight:1.75, fontStyle:"italic", marginBottom:8 }}>"{quote.text}"</p>
-              <div style={{ color:C.accent, fontSize:13, fontWeight:600 }}>— {quote.author}</div>
-            </div>
-            <div className="card">
-              <div className="label">Daily Affirmation</div>
-              <p key={affIdx} style={{ fontSize:17, fontWeight:600, lineHeight:1.6, marginBottom:18, minHeight:52, animation:"fadeUp 0.3s ease" }}>{allAffs[affIdx%allAffs.length]}</p>
-              <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
-                <button className="btn-ghost" style={{ fontSize:12, padding:"9px 14px" }} onClick={prevAff}>← Prev</button>
-                <button className="btn-ghost" style={{ fontSize:12, padding:"9px 14px" }} onClick={nextAff}>Next →</button>
-                <span style={{ marginLeft:"auto", color:C.faint, fontSize:12 }}>{(affIdx%allAffs.length)+1}/{allAffs.length}</span>
+            <div className="responsive-grid-2" style={{ marginBottom:0 }}>
+              <div className="card-elevated" style={{ borderLeft:`3px solid ${C.accent}`, marginBottom:0 }}>
+                <div className="label">Quote of the day</div>
+                <p style={{ fontSize:14, lineHeight:1.8, fontStyle:"italic", marginBottom:10 }}>"{quote.text}"</p>
+                <div style={{ color:C.accent, fontSize:13, fontWeight:600 }}>— {quote.author}</div>
+              </div>
+              <div className="card" style={{ marginBottom:0 }}>
+                <div className="label">Daily Affirmation</div>
+                <p key={affIdx} style={{ fontSize:15, fontWeight:600, lineHeight:1.65, marginBottom:16, minHeight:52, animation:"fadeUp 0.3s ease" }}>{allAffs[affIdx%allAffs.length]}</p>
+                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                  <button className="btn-ghost" style={{ fontSize:12, padding:"8px 12px" }} onClick={prevAff}>← Prev</button>
+                  <button className="btn-ghost" style={{ fontSize:12, padding:"8px 12px" }} onClick={nextAff}>Next →</button>
+                  <span style={{ marginLeft:"auto", color:C.faint, fontSize:12 }}>{(affIdx%allAffs.length)+1}/{allAffs.length}</span>
+                </div>
               </div>
             </div>
             {goals.filter(g=>!g.done).length>0 && (
-              <div className="card">
+              <div className="card" style={{ marginTop:16 }}>
                 <div className="label" style={{ marginBottom:14 }}>Active Goals</div>
                 {goals.filter(g=>!g.done).slice(0,3).map(g=>{
                   const m=CAT_META[g.category];
@@ -618,8 +833,9 @@ function App() {
 
         {tab==="goals" && (
           <>
-            <div style={{ fontSize:18, fontWeight:700, marginBottom:18 }}>Goal Tracker</div>
-            <div className="card">
+            <div className="page-header"><div className="section-title">Goal Tracker</div><div className="section-sub">Set intentions and track your progress toward your dreams.</div></div>
+            <div className="responsive-grid-340">
+            <div className="card" style={{ position:"sticky", top:72, marginBottom:0 }}>
               <div className="label">New Goal</div>
               <input style={{ marginBottom:10 }} placeholder="What do you want to achieve?" value={newGoal.title} onChange={e=>setNewGoal({...newGoal,title:e.target.value})} onKeyDown={e=>e.key==="Enter"&&addGoal()} />
               <select style={{ marginBottom:12 }} value={newGoal.category} onChange={e=>setNewGoal({...newGoal,category:e.target.value})}>
@@ -631,6 +847,7 @@ function App() {
               </div>
               <button className="btn-primary" style={{ width:"100%" }} onClick={addGoal}>Add Goal</button>
             </div>
+            <div>
             {goals.length===0
               ? <div className="card" style={{ textAlign:"center", padding:40, color:C.muted }}>No goals yet — set your first intention above.</div>
               : goals.map((g,idx)=>{
@@ -661,12 +878,14 @@ function App() {
                   );
                 })
             }
+            </div>
+            </div>
           </>
         )}
 
         {tab==="affirmations" && (
           <>
-            <div style={{ fontSize:18, fontWeight:700, marginBottom:18 }}>Affirmations</div>
+            <div className="page-header"><div className="section-title">Affirmations</div><div className="section-sub">Reprogram your mindset with powerful daily affirmations.</div></div>
             <div className="card-elevated" style={{ textAlign:"center", padding:"40px 24px", borderColor:C.accentMid }}>
               <div style={{ fontSize:26, color:C.accent, marginBottom:14, animation:"shimmer 2.5s ease-in-out infinite" }}>✦</div>
               <p key={affIdx} style={{ fontSize:18, fontWeight:600, lineHeight:1.65, marginBottom:24, minHeight:58, animation:"fadeUp 0.3s ease" }}>{allAffs[affIdx%allAffs.length]}</p>
@@ -699,8 +918,8 @@ function App() {
 
         {tab==="gratitude" && (
           <>
-            <div style={{ fontSize:18, fontWeight:700, marginBottom:18 }}>Gratitude Journal</div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
+            <div className="page-header"><div className="section-title">Gratitude Journal</div><div className="section-sub">Cultivate abundance by acknowledging the blessings already in your life.</div></div>
+            <div className="responsive-grid-2" style={{ marginBottom:14 }}>
               {[{n:streak.count,l:"Day Streak",sub:"days of gratitude",c:C.accent},{n:Object.keys(gratitude).length,l:"Total Entries",sub:"days journaled",c:C.text}].map(({n,l,sub,c})=>(
                 <div key={l} className="card" style={{ textAlign:"center", padding:"18px 12px" }}>
                   <div style={{ fontSize:11, letterSpacing:"0.1em", color:C.faint, marginBottom:6 }}>{l.toUpperCase()}</div>
@@ -738,10 +957,9 @@ function App() {
 
         {tab==="vision" && (
           <>
-            <div style={{ fontSize:18, fontWeight:700, marginBottom:6 }}>Vision Board</div>
-            <div style={{ color:C.muted, fontSize:13, marginBottom:18, lineHeight:1.6 }}>
+            <div className="page-header"><div className="section-title">Vision Board</div><div className="section-sub">
               {goalCategories.length>0 ? `Aligned with your goals: ${goalCategories.join(" · ")}` : "Your curated vision board — add goals to personalise it further."}
-            </div>
+            </div></div>
             {effectiveVision.length===0
               ? <div className="card" style={{ textAlign:"center", padding:48, color:C.muted }}>Vision board is empty.</div>
               : (
@@ -765,7 +983,7 @@ function App() {
             }
             <div className="card">
               <div className="label">Add Your Vision</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+              <div className="responsive-grid-2" style={{ marginBottom:10 }}>
                 <input placeholder="Label (e.g. Dream Home)" value={newVision.label} onChange={e=>setNewVision({...newVision,label:e.target.value})} />
                 <select value={newVision.category} onChange={e=>setNewVision({...newVision,category:e.target.value})}>
                   {CATEGORIES.map(c=><option key={c}>{c}</option>)}
@@ -787,12 +1005,19 @@ function App() {
             </div>
           </>
         )}
-      </div>
+      </div>{/* content-inner */}
+      </div>{/* main-content */}
 
-      <div style={{ borderTop:`1px solid ${C.border}`, padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10, maxWidth:820, margin:"0 auto" }}>
-        <div style={{ color:C.faint, fontSize:12, letterSpacing:"0.06em" }}>MANIFEST ✦ Your daily abundance tool</div>
-        <button onClick={()=>setShowContact(true)} style={{ background:"transparent", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"6px 14px", fontSize:12, display:"flex", alignItems:"center", gap:6 }}>✉ Contact Support</button>
-      </div>
+      {/* Mobile bottom nav */}
+      <nav className="mobile-nav">
+        {tabs.map(t => (
+          <button key={t.id} className={`mobile-nav-btn${tab===t.id?" active":""}`} onClick={() => switchTab(t.id)}>
+            <span className="sym">{t.sym}</span>
+            <span>{t.id==="affirmations"?"Affirm":t.id==="gratitude"?"Gratitude":t.id==="vision"?"Vision":t.label}</span>
+          </button>
+        ))}
+      </nav>
+
     </div>
   );
 }
@@ -802,3 +1027,4 @@ root.render(<App />);
 </script>
 </body>
 </html>
+
